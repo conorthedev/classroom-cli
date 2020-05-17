@@ -51,24 +51,27 @@ def initialize():
 
 def menu():
     print(color.BOLD + "Type a command or use 'h' or 'help' for help" + color.END)
+    parseCommand(input(color.BLUE + "> " + color.END))
 
-    help(input(color.BLUE + "> " + color.END))
-
-def help(command):
+def parseCommand(command):
     if(command == "h" or command == "help"):
-        print(color.BLUE + "classroom-cli v1.0 - help menu\n" + color.END + "h" + color.END + " | displays this menu")
+        help()
+    if(command == "lc" or command == "listcourses"):
+        listCourses()
     
     menu()
 
+def help():
+    print(color.BLUE + "classroom-cli v1.0 - help menu\n" + color.END + "h | Displays this menu\nlc | Lists courses that you are enrolled in")
 
-def getCourses():
+def listCourses():
     results = service.courses().list(pageSize=100).execute()
     courses = results.get('courses', [])
 
     if not courses:
-        print('No courses found.')
+        print(color.RED + 'No courses found.' + color.END)
     else:
-        print('Courses:')
+        print(color.BLUE + 'Courses:' + color.END)
         for course in courses:
             print(course['name'])
 
