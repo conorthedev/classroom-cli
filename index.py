@@ -58,11 +58,13 @@ def parseCommand(command):
         help()
     if(command == "lc" or command == "listcourses"):
         listCourses()
-    
+    if(command == "exit" or command == "x" or command == "stop"):
+        exit(0)
+        
     menu()
 
 def help():
-    print(color.BLUE + "classroom-cli v1.0 - help menu\n" + color.END + "h | Displays this menu\nlc | Lists courses that you are enrolled in")
+    print(color.BLUE + "classroom-cli v1.0 - help menu\n" + color.END + "h | Displays this menu\nlc | Lists courses that you are enrolled in\nstop | Closes the application")
 
 def listCourses():
     results = service.courses().list(pageSize=100).execute()
@@ -71,7 +73,7 @@ def listCourses():
     if not courses:
         print(color.RED + 'No courses found.' + color.END)
     else:
-        print(color.BLUE + 'Courses:' + color.END)
+        print(color.BLUE + "Courses: (" + str(courses.__len__()) + ")" + color.END)
         for course in courses:
             print(course['name'])
 
