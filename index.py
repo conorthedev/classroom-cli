@@ -14,13 +14,13 @@ def menu():
     parseCommand(input(Color.BLUE + "> " + Color.END))
 
 def parseCommand(command):
-    if(command == "h" or command == "help"):
+    if command in ("h", "help"):
         help()
-    elif(command == "lc" or command == "listcourses"):
+    elif command in ("lc", "listcourses"):
         ClassroomHelper.listCourses()
-    elif(command == "la" or command == "listassignments"):
+    elif command in ("la", "listassignments"):
         ClassroomHelper.listAssignmentsBatch()
-    elif(command == "exit" or command == "x" or command == "stop"):
+    elif command in ("x", "exit", "stop"):
         exit(0)
     else:
         Logger.error("Unknown command!")
