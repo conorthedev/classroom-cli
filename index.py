@@ -11,6 +11,7 @@ SCOPES = [
     'https://www.googleapis.com/auth/classroom.rosters.readonly',
     'https://www.googleapis.com/auth/classroom.profile.emails',
     'https://www.googleapis.com/auth/classroom.profile.photos',
+    'https://www.googleapis.com/auth/classroom.coursework.me'
 ]
 
 class color:
@@ -58,17 +59,26 @@ def parseCommand(command):
         help()
     if(command == "lc" or command == "listcourses"):
         listCourses()
+    if(command == "la" or command == "listassignments"):
+        listAssignments()
     if(command == "exit" or command == "x" or command == "stop"):
         exit(0)
         
     menu()
 
 def help():
-    print(color.BLUE + "classroom-cli v1.0 - help menu\n" + color.END + "h | Displays this menu\nlc | Lists courses that you are enrolled in\nstop | Closes the application")
+    print(color.BLUE + "classroom-cli v0.0.1 - help menu\n" + color.END + "h | Displays this menu\nlc | Lists courses that you are enrolled in\nla | Lists assignments that are due to be turned in\nstop | Closes the application")
+
+def getCourses():
+    if 'courses' in globals():
+        return
+
+    results = service.courses().list(pageSize=100).execute()
+    global courses
+    courses = results.get('courses', [])
 
 def listCourses():
-    results = service.courses().list(pageSize=100).execute()
-    courses = results.get('courses', [])
+    getCourses()
 
     if not courses:
         print(color.RED + 'No courses found.' + color.END)
@@ -76,6 +86,25 @@ def listCourses():
         print(color.BLUE + "Courses: (" + str(courses.__len__()) + ")" + color.END)
         for course in courses:
             print(course['name'])
+
+def listAssignments():
+    if 'assignments' not in globals():
+        getCourses()
+
+        global assignments
+        assignments = []
+        for course in courses:
+            courseWork = service.courses().courseWork().list(courseId=course['id']).execute()
+            assignmentList = courseWork.get('courseWork')
+            for assignment in assignmentList:
+                studentSubmissions = service.courses().courseWork().studentSubmissions().list(courseId=assignment['courseId'], courseWorkId=assignment['id']).execute().get('studentSubmissions')
+
+                for submission in studentSubmissions:
+                    if submission.get('courseWorkType') == 'ASSIGNMENT':
+                        if submission.get('state') != 'TURNED_IN' and submission.get('state') != 'RETURNED':
+                            assignments.append(assignment)
+    
+    print(color.BLUE + "Due Assignments: (" + str(assignments.__len__()) + ")" + color.END)
 
 if __name__ == '__main__':
     initialize()
