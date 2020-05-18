@@ -4,6 +4,7 @@ import os.path
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from apiclient.http import BatchHttpRequest
 
 SCOPES = [
     'https://www.googleapis.com/auth/classroom.courses.readonly',
@@ -57,12 +58,14 @@ def menu():
 def parseCommand(command):
     if(command == "h" or command == "help"):
         help()
-    if(command == "lc" or command == "listcourses"):
+    elif(command == "lc" or command == "listcourses"):
         listCourses()
-    if(command == "la" or command == "listassignments"):
-        listAssignments()
-    if(command == "exit" or command == "x" or command == "stop"):
+    elif(command == "la" or command == "listassignments"):
+        listAssignmentsBatch()
+    elif(command == "exit" or command == "x" or command == "stop"):
         exit(0)
+    else:
+        print(color.RED + "Unknown command \"" + command + "\"" + color.END)
         
     menu()
 
@@ -87,24 +90,66 @@ def listCourses():
         for course in courses:
             print(course['name'])
 
-def listAssignments():
-    if 'assignments' not in globals():
-        getCourses()
 
-        global assignments
-        assignments = []
-        for course in courses:
-            courseWork = service.courses().courseWork().list(courseId=course['id']).execute()
-            assignmentList = courseWork.get('courseWork')
-            for assignment in assignmentList:
-                studentSubmissions = service.courses().courseWork().studentSubmissions().list(courseId=assignment['courseId'], courseWorkId=assignment['id']).execute().get('studentSubmissions')
+def listAssignmentsBatch():
+    print("Getting due assignments... this may take a moment depending on the number of courses")
+    global courseWork
+    courseWork = []
 
-                for submission in studentSubmissions:
-                    if submission.get('courseWorkType') == 'ASSIGNMENT':
-                        if submission.get('state') != 'TURNED_IN' and submission.get('state') != 'RETURNED':
-                            assignments.append(assignment)
-    
-    print(color.BLUE + "Due Assignments: (" + str(assignments.__len__()) + ")" + color.END)
+    global submissions
+    submissions = []
+
+    def courseWorkCallback(request_id, response, exception):
+        if exception is not None:
+            print('Error getting course: "{0}" {1}'.format(request_id, exception))
+        else:
+            courseWork.append(response) 
+
+    def submissionsCallback(request_id, response, exception):
+        if exception is not None:
+            print('Error getting submission: "{0}" {1}'.format(request_id, exception))
+        else:
+            submissions.append(response) 
+
+    getCourses()
+
+    # Get courseWork
+    courseWorkBatch = service.new_batch_http_request(callback=courseWorkCallback)
+    for course in courses:
+        request = service.courses().courseWork().list(courseId=course['id'])
+        courseWorkBatch.add(request, request_id=course['id'])
+
+    courseWorkBatch.execute()
+
+    submissionsBatch = service.new_batch_http_request(callback=submissionsCallback)
+    for work in courseWork:
+        assignmentList = work.get('courseWork')
+
+        # Get submisions
+        for assignment in assignmentList:
+            request = service.courses().courseWork().studentSubmissions().list(courseId=assignment['courseId'], courseWorkId=assignment['id'])
+            submissionsBatch.add(request, request_id=assignment['id'])
+
+    submissionsBatch.execute()
+
+    print(color.BLUE + "Assignments: " + color.END)
+
+    dueAssignments = []
+    for submission in submissions:
+        submission = submission.get('studentSubmissions')[0]
+        if submission.get('courseWorkType') == 'ASSIGNMENT':
+            if submission.get('state') != 'TURNED_IN' and submission.get('state') != 'RETURNED':
+                dueAssignments.append(submission)
+                for coursework in courseWork:
+                    if coursework.get('courseWork')[0].get('id') == submission.get("courseWorkId"):
+                        desc = ""
+                        if len(coursework.get('courseWork')[0].get('description').split('\n')[0]) > 100:
+                            desc = coursework.get('courseWork')[0].get('description').split('\n')[0][0:100] + "..."
+                        else:
+                            desc = coursework.get('courseWork')[0].get('description').split('\n')[0]
+                        print(color.BOLD + "* " + coursework.get('courseWork')[0].get('title') + " (" + coursework.get('courseWork')[0].get('id') + ")\n  " + color.END + desc)
+
+    print(color.BLUE + "Due: " + str(dueAssignments.__len__()) + color.END)
 
 if __name__ == '__main__':
     initialize()
