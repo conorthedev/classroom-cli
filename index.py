@@ -7,7 +7,7 @@ Logger = logger.Logger()
 
 def help():
     Logger.notice("classroom-cli v0.0.1:")
-    print("h | Displays this menu\nlc | Lists courses that you are enrolled in\nla | Lists assignments that are due to be turned in\nstop | Closes the application")
+    print("h (help) | Displays this menu\nlc (listcourses) | Lists courses that you are enrolled in\nla (listassignments) | Lists assignments that are due to be turned in\nexit (stop, x) | Closes the application")
 
 def menu():
     Logger.info("Type a command or use 'h' or 'help' for help")
