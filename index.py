@@ -1,14 +1,16 @@
-from utils import color, gclassroom
+from utils import color, gclassroom, logger
 
 Classroom = gclassroom.Classroom() 
 ClassroomHelper = gclassroom.ClassroomHelper(classroom=Classroom) 
 Color = color.Color()
+Logger = logger.Logger()
 
 def help():
-    print(Color.BLUE + "classroom-cli v0.0.1 - help menu\n" + Color.END + "h | Displays this menu\nlc | Lists courses that you are enrolled in\nla | Lists assignments that are due to be turned in\nstop | Closes the application")
+    Logger.notice("classroom-cli v0.0.1:")
+    print("h | Displays this menu\nlc | Lists courses that you are enrolled in\nla | Lists assignments that are due to be turned in\nstop | Closes the application")
 
 def menu():
-    print(Color.BOLD + "Type a command or use 'h' or 'help' for help" + Color.END)
+    Logger.info("Type a command or use 'h' or 'help' for help")
     parseCommand(input(Color.BLUE + "> " + Color.END))
 
 def parseCommand(command):
@@ -21,7 +23,7 @@ def parseCommand(command):
     elif(command == "exit" or command == "x" or command == "stop"):
         exit(0)
     else:
-        print(Color.RED + "Unknown command \"" + command + "\"" + Color.END)
+        Logger.error("Unknown command!")
         
     menu()
 
@@ -32,6 +34,6 @@ if __name__ == '__main__':
     student = Classroom.service.userProfiles().get(userId="me").execute()
     name = student.get("name").get("fullName")
 
-    print(Color.GREEN  + Color.BOLD + "You are logged in as " + name + Color.END)
+    Logger.success(Color.BOLD + "You are logged in as " + name)
 
     menu()

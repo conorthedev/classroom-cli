@@ -6,8 +6,9 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 # pylint: disable=import-error
 from apiclient.http import BatchHttpRequest
-from . import color 
+from . import color, logger
 Color = color.Color()
+Logger = logger.Logger()
 
 SCOPES = [
     'https://www.googleapis.com/auth/classroom.courses.readonly',
@@ -36,9 +37,9 @@ class ClassroomHelper:
         self.getCourses()
 
         if not courses:
-            print(Color.RED + 'No courses found.' + Color.END)
+            Logger.error('No courses found!')
         else:
-            print(Color.BLUE + "Courses: (" + str(courses.__len__()) + ")" + Color.END)
+            Logger.notice("Courses: (" + str(courses.__len__()) + ")")
             for course in courses:
                 print(course['name'])
 
@@ -52,13 +53,13 @@ class ClassroomHelper:
 
         def courseWorkCallback(request_id, response, exception):
             if exception is not None:
-                print('Error getting course: "{0}" {1}'.format(request_id, exception))
+                Logger.error('Error getting course: "{0}" {1}'.format(request_id, exception))
             else:
                 courseWork.append(response) 
 
         def submissionsCallback(request_id, response, exception):
             if exception is not None:
-                print('Error getting submission: "{0}" {1}'.format(request_id, exception))
+                Logger.error('Error getting submission: "{0}" {1}'.format(request_id, exception))
             else:
                 submissions.append(response) 
 
@@ -83,7 +84,7 @@ class ClassroomHelper:
 
         submissionsBatch.execute()
 
-        print(Color.BLUE + "Assignments: " + Color.END)
+        Logger.notice("Assignments: ")
 
         dueAssignments = []
         for submission in submissions:
@@ -98,9 +99,11 @@ class ClassroomHelper:
                                 desc = coursework.get('courseWork')[0].get('description').split('\n')[0][0:100] + "..."
                             else:
                                 desc = coursework.get('courseWork')[0].get('description').split('\n')[0]
-                            print(Color.BOLD + "* " + coursework.get('courseWork')[0].get('title') + " (" + coursework.get('courseWork')[0].get('id') + ")\n  " + Color.END + desc)
 
-        print(Color.BLUE + "Due: " + str(dueAssignments.__len__()) + Color.END)
+                            Logger.info("* " + coursework.get('courseWork')[0].get('title') + " (" + coursework.get('courseWork')[0].get('id') + ")")
+                            print("  " + desc)
+
+        Logger.notice("Due: " + str(dueAssignments.__len__()))
 
 class Classroom:
     service = None
