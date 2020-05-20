@@ -68,8 +68,9 @@ class ClassroomHelper:
         # Get courseWork
         courseWorkBatch = self.gclassroom.service.new_batch_http_request(callback=courseWorkCallback)
         for course in courses:
-            request = self.gclassroom.service.courses().courseWork().list(courseId=course['id'])
-            courseWorkBatch.add(request, request_id=course['id'])
+            if 'ARCHIVED' not in course['courseState']:
+                request = self.gclassroom.service.courses().courseWork().list(courseId=course['id'])
+                courseWorkBatch.add(request, request_id=course['id'])
 
         courseWorkBatch.execute()
 
@@ -84,26 +85,30 @@ class ClassroomHelper:
 
         submissionsBatch.execute()
 
-        Logger.notice("Assignments: ")
-
         dueAssignments = []
         for submission in submissions:
             submission = submission.get('studentSubmissions')[0]
             if submission.get('courseWorkType') == 'ASSIGNMENT':
                 if submission.get('state') != 'TURNED_IN' and submission.get('state') != 'RETURNED':
                     dueAssignments.append(submission)
-                    for coursework in courseWork:
-                        if coursework.get('courseWork')[0].get('id') == submission.get("courseWorkId"):
-                            desc = ""
-                            if len(coursework.get('courseWork')[0].get('description').split('\n')[0]) > 100:
-                                desc = coursework.get('courseWork')[0].get('description').split('\n')[0][0:100] + "..."
-                            else:
-                                desc = coursework.get('courseWork')[0].get('description').split('\n')[0]
 
-                            Logger.info("* " + coursework.get('courseWork')[0].get('title') + " (" + coursework.get('courseWork')[0].get('id') + ")")
-                            print("  " + desc)
+        if dueAssignments == []:
+            Logger.success("No assignments due!")
+        else:
+            Logger.notice("Assignments: ")
+            for submission in dueAssignments:
+                for coursework in courseWork:
+                    if coursework.get('courseWork')[0].get('id') == submission.get("courseWorkId"):
+                        desc = ""
+                        if len(coursework.get('courseWork')[0].get('description').split('\n')[0]) > 100:
+                            desc = coursework.get('courseWork')[0].get('description').split('\n')[0][0:100] + "..."
+                        else:
+                            desc = coursework.get('courseWork')[0].get('description').split('\n')[0]
 
-        Logger.notice("Due: " + str(dueAssignments.__len__()))
+                        Logger.info("* " + coursework.get('courseWork')[0].get('title') + " (" + coursework.get('courseWork')[0].get('id') + ")")
+                        print("  " + desc)
+
+            Logger.notice("Due: " + str(dueAssignments.__len__()))
 
 class Classroom:
     service = None
